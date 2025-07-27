@@ -49,7 +49,7 @@ jobs:
 
     - name: Rename APK with Git Tag
       run: |
-        mv app/release/app-release.apk app/release/$FINAL_APK_NAME
+        mv app/build/outputs/apk/release/app-release.apk app/build/outputs/apk/release/$FINAL_APK_NAME
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
