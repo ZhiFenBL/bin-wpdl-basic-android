@@ -1,0 +1,58 @@
+name: Android CI Publish
+
+on:
+  push:
+    tags:
+      - "*.*.*"
+
+permissions:
+  contents: write
+
+env:
+    JDK_VERSION: "24"
+    FINAL_APK_NAME: wpdl-basic-${{ github.ref_name }}-universal.apk
+    
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Checkout source repo
+      uses: actions/checkout@v4
+      with:
+        repository: 'ZhiFenBL/wpdl-basic-android'
+        ssh-key: ${{ secrets.PRIVATE_REPO_SSH_KEY }}
+    
+    - name: Set up GraalVM ${{ env.JDK_VERSION }}
+      uses: graalvm/setup-graalvm@v1
+      with:
+        java-version: ${{ env.JDK_VERSION }} 
+        distribution: 'graalvm'
+
+    - name: Decode Keystore (.p12)
+      run: |
+        echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 --decode > ${{ github.workspace }}/app/release.p12
+        
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Rename APK with Git Tag
+      run: |
+        mv app/release/app-release.apk app/release/$FINAL_APK_NAME
+      
+    - name: Build Release APK with Gradle Properties
+      run: |
+        ./gradlew assembleRelease \
+          -Pandroid.injected.signing.store.file=${{ github.workspace }}/app/release.p12 \
+          -Pandroid.injected.signing.store.password='${{ secrets.RELEASE_KEYSTORE_PASSWORD }}' \
+          -Pandroid.injected.signing.key.alias='${{ secrets.RELEASE_KEY_ALIAS }}' \
+          -Pandroid.injected.signing.key.password='${{ secrets.RELEASE_KEY_PASSWORD }}'
+
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: release
+        path: app/release/*.apk
