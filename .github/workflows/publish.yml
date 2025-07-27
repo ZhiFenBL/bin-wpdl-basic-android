@@ -38,10 +38,6 @@ jobs:
         
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
-
-    - name: Rename APK with Git Tag
-      run: |
-        mv app/release/app-release.apk app/release/$FINAL_APK_NAME
       
     - name: Build Release APK with Gradle Properties
       run: |
@@ -51,8 +47,17 @@ jobs:
           -Pandroid.injected.signing.key.alias='${{ secrets.RELEASE_KEY_ALIAS }}' \
           -Pandroid.injected.signing.key.password='${{ secrets.RELEASE_KEY_PASSWORD }}'
 
+    - name: Rename APK with Git Tag
+      run: |
+        mv app/release/app-release.apk app/release/$FINAL_APK_NAME
+
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: release
         path: app/release/*.apk
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: app/release/*.apk
